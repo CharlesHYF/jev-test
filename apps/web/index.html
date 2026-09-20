@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <title>Jev × OpenAI · 电商客服深度测试</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true"><img src="/assets/brand.png" alt="" /></div>
+          <div class="brand-copy">
+            <div class="brand-title-row">
+              <h1>Jev × OpenAI</h1>
+              <span class="beta-chip">Beta</span>
+            </div>
+            <p>让 AI 决策更快、更可靠</p>
+          </div>
+        </div>
+
+        <div class="scenario-head">
+          <span>测试场景</span>
+          <select id="scenarioSelect" aria-label="测试场景"></select>
+        </div>
+
+        <div class="top-summary">
+          <strong id="scenarioHeadline">电商客服 · 综合判断</strong>
+          <span id="scenarioDescription">从客户消息中识别问题类型、紧急程度与客户情绪，对比 Jev 和 OpenAI 的实际业务表现。</span>
+        </div>
+
+        <div class="top-actions">
+          <span class="api-chip"><i></i><span id="apiChipText">检查 API</span></span>
+          <button class="icon-button top-icon-button" id="settingsButton" type="button" aria-label="模型设置"><img src="/assets/gear.png" alt="" /></button>
+          <button class="icon-button top-icon-button" id="appearanceButton" type="button" aria-label="切换显示模式"><img src="/assets/sun.png" alt="" /></button>
+        </div>
+      </header>
+
+      <section class="product-grid">
+        <aside class="sidebar">
+          <button class="new-chat-button" id="newChatButton" type="button">+ 新对话</button>
+
+          <section class="side-section">
+            <div class="side-label">测试场景</div>
+            <nav class="scene-list" id="sceneList"></nav>
+          </section>
+
+          <section class="side-section history-section">
+            <div class="side-label">历史对话</div>
+            <div class="history-list" id="conversationHistory">
+              <div class="history-empty">发送第一条客服消息后，这里会保留本次会话记录。</div>
+            </div>
+          </section>
+
+          <div class="sidebar-stats">
+            <div><span>总测试次数</span><strong id="totalRuns">0 次</strong></div>
+            <div><span>平均耗时</span><strong id="averageLatency">—</strong></div>
+          </div>
+        </aside>
+
+        <section class="chat-panel">
+          <div class="chat-scroll" id="chatScroll">
+            <div class="assistant-intro" id="assistantIntro">
+              <div class="assistant-avatar">JL</div>
+              <div class="intro-card">
+                <strong>Jev × OpenAI 电商客服测试助手</strong>
+                <p>输入一条真实客服消息，我会同时调用 Jev 与 OpenAI，并在右侧展示问题映射、SSE、原始请求与性能数据。</p>
+                <div class="sample-grid" id="sampleGrid"></div>
+              </div>
+            </div>
+            <div id="messageList" class="message-list"></div>
+          </div>
+
+          <div class="composer-wrap">
+            <div class="composer-status" id="composerStatus">当前场景：综合判断 · Enter 发送，Shift + Enter 换行</div>
+            <div class="composer">
+              <textarea id="messageInput" rows="2" placeholder="输入电商客服消息，例如：包裹显示已签收，但我没有收到……"></textarea>
+              <div class="composer-tools">
+                <button class="composer-tool icon-only" id="attachmentButton" type="button" title="附件暂不参与本次 Benchmark" aria-label="附件"><img src="/assets/paperclip.png" alt="" /></button>
+                <button class="composer-tool" id="quickExampleButton" type="button"><img src="/assets/globe.png" alt="" /><span>快捷示例</span></button>
+              </div>
+              <button class="send-button" id="sendButton" type="button"><img src="/assets/send.png" alt="" /><span>发送</span></button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="inspector-panel">
+          <div class="inspector-tabs" role="tablist">
+            <button class="tab-button active" data-tab="steps" type="button">执行步骤</button>
+            <button class="tab-button" data-tab="mapping" type="button">问题映射</button>
+            <button class="tab-button" data-tab="sse" type="button">SSE 事件</button>
+            <button class="tab-button" data-tab="raw" type="button">原始数据</button>
+            <button class="tab-button" data-tab="performance" type="button">性能数据</button>
+          </div>
+
+          <div class="inspector-scroll">
+            <section class="tab-pane active" data-pane="steps">
+              <div class="pane-heading">
+                <div><h2>执行步骤</h2><p>观察一次对话背后的完整调用链。</p></div>
+                <span id="runStateBadge" class="run-badge">等待输入</span>
+              </div>
+
+              <div class="step-track" id="stepTrack"></div>
+
+              <div class="subheading-row"><h3>执行时间线</h3><span id="timelineCount">0 条</span></div>
+              <div class="event-log" id="executionTimeline"><div class="empty-state">发送消息后显示请求构建、Jev、OpenAI 与结果比对过程。</div></div>
+
+              <div class="subheading-row steps-scene-context"><h3>当前场景</h3><button class="link-button" id="jumpToMapping" type="button">查看问题映射</button></div>
+              <div class="scenario-summary steps-scene-context" id="scenarioSummary"></div>
+
+              <div class="subheading-row mapping-heading"><h3>当前执行的问题映射 <small>（供调试参考）</small></h3><div class="mapping-actions"><span>JSON</span><button class="copy-button" data-copy="questionMappingPreview" type="button">复制</button></div></div>
+              <div class="mapping-preview"><pre id="questionMappingPreview">等待输入…</pre></div>
+            </section>
+
+            <section class="tab-pane" data-pane="mapping">
+              <div class="pane-heading">
+                <div><h2>问题映射</h2><p>业务问题在后端被映射为 Jev 的 Noul / Choice / Score。</p></div>
+              </div>
+              <div class="question-map" id="questionMap"></div>
+            </section>
+
+            <section class="tab-pane" data-pane="sse">
+              <div class="pane-heading">
+                <div><h2>OpenAI SSE</h2><p>记录 response.created、output_text.delta 与 completed 等事件。</p></div>
+                <span id="sseEventCount" class="run-badge neutral">0 个事件</span>
+              </div>
+              <div class="sse-list" id="sseList"><div class="empty-state">运行 OpenAI 后显示实时 SSE 事件。</div></div>
+            </section>
+
+            <section class="tab-pane" data-pane="raw">
+              <div class="pane-heading">
+                <div><h2>原始数据</h2><p>便于核对两边真实请求和响应，不做字段翻译。</p></div>
+              </div>
+              <div class="raw-block">
+                <div class="raw-heading"><strong>Jev Request</strong><button class="copy-button" data-copy="jevRequest" type="button">复制</button></div>
+                <pre id="jevRequest">等待请求…</pre>
+              </div>
+              <div class="raw-block">
+                <div class="raw-heading"><strong>Jev Response</strong><button class="copy-button" data-copy="jevResponse" type="button">复制</button></div>
+                <pre id="jevResponse">等待响应…</pre>
+              </div>
+              <div class="raw-block">
+                <div class="raw-heading"><strong>OpenAI Request</strong><button class="copy-button" data-copy="openaiRequest" type="button">复制</button></div>
+                <pre id="openaiRequest">等待请求…</pre>
+              </div>
+              <div class="raw-block">
+                <div class="raw-heading"><strong>OpenAI Output</strong><button class="copy-button" data-copy="openaiOutputRaw" type="button">复制</button></div>
+                <pre id="openaiOutputRaw">等待响应…</pre>
+              </div>
+            </section>
+
+            <section class="tab-pane" data-pane="performance">
+              <div class="pane-heading">
+                <div><h2>性能数据</h2><p>当前轮次 + 本次会话累计统计。</p></div>
+              </div>
+              <div class="perf-cards">
+                <article class="perf-card"><span>Jev 总耗时</span><strong id="perfJevTotal">—</strong><small id="perfJevDetail">等待测试</small></article>
+                <article class="perf-card"><span>OpenAI 首文本</span><strong id="perfOpenAIFirst">—</strong><small id="perfOpenAIFirstDetail">等待测试</small></article>
+                <article class="perf-card"><span>OpenAI 总耗时</span><strong id="perfOpenAITotal">—</strong><small id="perfOpenAIDetail">等待测试</small></article>
+                <article class="perf-card highlight"><span>耗时倍数</span><strong id="perfRatio">—</strong><small>OpenAI 总耗时 / Jev 总耗时</small></article>
+              </div>
+
+              <div class="subheading-row"><h3>会话统计</h3><span id="statsRunCount">0 轮</span></div>
+              <div class="stats-table-wrap">
+                <table class="stats-table">
+                  <thead><tr><th>指标</th><th>Jev</th><th>OpenAI</th></tr></thead>
+                  <tbody>
+                    <tr><td>P50 总耗时</td><td id="jevP50">—</td><td id="openaiP50">—</td></tr>
+                    <tr><td>P95 总耗时</td><td id="jevP95">—</td><td id="openaiP95">—</td></tr>
+                    <tr><td>最快</td><td id="jevMin">—</td><td id="openaiMin">—</td></tr>
+                    <tr><td>最慢</td><td id="jevMax">—</td><td id="openaiMax">—</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <dialog id="settingsDialog" class="settings-dialog">
+      <form method="dialog" class="settings-card">
+        <div class="dialog-heading"><div><h2>模型设置</h2><p>API Key 仍只由 Node.js 后端读取。</p></div><button class="icon-button" value="cancel" aria-label="关闭">关闭</button></div>
+        <label><span>Jev 模型</span><input id="jevModel" value="jev-latest" /></label>
+        <label><span>OpenAI 模型</span><select id="openaiModel"><option value="gpt-5.6-luna" selected>gpt-5.6-luna</option><option value="gpt-5.6-terra">gpt-5.6-terra</option><option value="gpt-5.6-sol">gpt-5.6-sol</option></select></label>
+        <div class="dialog-grid">
+          <label><span>推理强度</span><select id="reasoningEffort"><option value="none">无</option><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select></label>
+          <label><span>最大输出 Token</span><input id="maxOutputTokens" type="number" min="32" max="4096" value="256" /></label>
+        </div>
+        <div class="dialog-footer"><span id="apiStatus">检查 API Key 配置…</span><button class="primary-dialog" value="default">完成</button></div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
